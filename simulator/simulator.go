@@ -6,7 +6,7 @@ import (
 
 const (
 	numberOfPlayers = 1
-	cardsPerPlayer  = 5
+	cardsPerPlayer  = 1
 	TotalColors     = 4
 	TotalValues     = 8
 	Herz            = "Herz"
@@ -44,6 +44,7 @@ func createDeck() []Card {
 
 	colors := []string{Herz, Schellen, Eichel, Blatt}
 
+	// values := []string{Seven, Eight}
 	values := []string{Seven, Eight, Nine, Under, Ober, King, Ten, As}
 	for _, color := range colors {
 		worth := 0
@@ -55,34 +56,67 @@ func createDeck() []Card {
 
 	return deck
 }
-func generateHands(deck []Card, currentHandIndex int, currentCardIndex int, currentHand []Card, result *[][]Card) {
+
+// Geerate all possible hands for all players
+func generateHands(deck []Card, currentCardIndex int, currentPlayerIndex int, currentHandIndex int, game *Game, result *[]Game) {
+	if currentPlayerIndex == len(game.Players) {
+		copiedGame := *game
+		*result = append(*result, copiedGame)
+		for _, curGame := range *result {
+			for _, player := range curGame.Players {
+				fmt.Printf("Player %d\n", player.ID)
+				for _, card := range player.Hand {
+					fmt.Printf("%s %s\n", card.Value, card.Color)
+				}
+			}
+		}
+		fmt.Println()
+		fmt.Println()
+		fmt.Println()
+		return
+	}
+
 	if currentHandIndex == cardsPerPlayer {
-		fmt.Printf("currentHand: %v\n", currentHand)
-		copiedHand := make([]Card, len(currentHand))
-		copy(copiedHand, currentHand)
-		*result = append(*result, copiedHand)
+		generateHands(deck, currentCardIndex, currentPlayerIndex+1, 0, game, result)
 		return
 	}
 
 	if currentCardIndex == len(deck) {
-		// All cards have been considered
 		return
 	}
+	generateHands(deck, currentCardIndex+1, currentPlayerIndex, currentHandIndex+1, game, result)
 
-	// Try not including the current card in the current hand
-	generateHands(deck, currentHandIndex, currentCardIndex+1, currentHand, result)
-
-	// Try including the current card in the current hand
-	currentHand[currentHandIndex] = deck[currentCardIndex]
-	generateHands(deck, currentHandIndex+1, currentCardIndex+1, currentHand, result)
-	currentHand[currentHandIndex] = Card{} // Reset the slot
-
+	game.Players[currentPlayerIndex].Hand[currentHandIndex] = deck[currentCardIndex]
+	generateHands(deck, currentCardIndex+1, currentPlayerIndex, currentHandIndex, game, result)
 }
-
 func main() {
 	deck := createDeck()
-	var allPossibleHands [][]Card
-	generateHands(deck, 0, 0, make([]Card, cardsPerPlayer), &allPossibleHands)
 
-	fmt.Printf("Total possible hands: %d\n", len(allPossibleHands))
+	players := make([]Player, numberOfPlayers)
+	for i := 0; i < numberOfPlayers; i++ {
+		players[i] = Player{ID: i + 1}
+	}
+
+	game := Game{
+		Players: players,
+		Deck:    deck,
+	}
+
+	for i := range game.Players {
+		game.Players[i].Hand = make([]Card, cardsPerPlayer)
+	}
+
+	var allPossibleGames []Game
+	generateHands(deck, 0, 0, 0, &game, &allPossibleGames)
+
+	fmt.Printf("Total possible games: %d\n", len(allPossibleGames))
+	for i, game := range allPossibleGames {
+		fmt.Printf("Game %d\n", i+1)
+		for _, player := range game.Players {
+			fmt.Printf("Player %d\n", player.ID)
+			for _, card := range player.Hand {
+				fmt.Printf("%s %s\n", card.Value, card.Color)
+			}
+		}
+	}
 }
