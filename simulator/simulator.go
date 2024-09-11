@@ -5,8 +5,8 @@ import (
 )
 
 const (
-	numberOfPlayers = 1
-	cardsPerPlayer  = 1
+	numberOfPlayers = 2
+	cardsPerPlayer  = 5
 	TotalColors     = 4
 	TotalValues     = 8
 	Herz            = "Herz"
@@ -42,9 +42,10 @@ type Game struct {
 func createDeck() []Card {
 	deck := make([]Card, 0)
 
+	// colors := []string{Herz, Eichel, Blatt}
 	colors := []string{Herz, Schellen, Eichel, Blatt}
 
-	// values := []string{Seven, Eight}
+	// values := []string{Seven, Eight, Nine, Ten}
 	values := []string{Seven, Eight, Nine, Under, Ober, King, Ten, As}
 	for _, color := range colors {
 		worth := 0
@@ -60,19 +61,20 @@ func createDeck() []Card {
 // Geerate all possible hands for all players
 func generateHands(deck []Card, currentCardIndex int, currentPlayerIndex int, currentHandIndex int, game *Game, result *[]Game) {
 	if currentPlayerIndex == len(game.Players) {
-		copiedGame := *game
-		*result = append(*result, copiedGame)
-		for _, curGame := range *result {
-			for _, player := range curGame.Players {
-				fmt.Printf("Player %d\n", player.ID)
-				for _, card := range player.Hand {
-					fmt.Printf("%s %s\n", card.Value, card.Color)
-				}
+		copiedGame := *game // Create a shallow copy of the game
+		copiedPlayers := make([]Player, len(game.Players))
+
+		for i := range game.Players {
+			copiedPlayer := Player{
+				ID:   game.Players[i].ID,
+				Hand: make([]Card, len(game.Players[i].Hand)),
 			}
+			copy(copiedPlayer.Hand, game.Players[i].Hand) // Copy the player's hand
+			copiedPlayers[i] = copiedPlayer
 		}
-		fmt.Println()
-		fmt.Println()
-		fmt.Println()
+
+		copiedGame.Players = copiedPlayers
+		*result = append(*result, copiedGame)
 		return
 	}
 
@@ -84,11 +86,25 @@ func generateHands(deck []Card, currentCardIndex int, currentPlayerIndex int, cu
 	if currentCardIndex == len(deck) {
 		return
 	}
+
+	// Copy the current card from the deck to the current player's hand
+	newCard := Card{
+		Value: deck[currentCardIndex].Value,
+		Color: deck[currentCardIndex].Color,
+		Worth: deck[currentCardIndex].Worth,
+	}
+	game.Players[currentPlayerIndex].Hand[currentHandIndex] = newCard
+
+	// Recursively generate the next hand
 	generateHands(deck, currentCardIndex+1, currentPlayerIndex, currentHandIndex+1, game, result)
 
-	game.Players[currentPlayerIndex].Hand[currentHandIndex] = deck[currentCardIndex]
+	// Backtrack: Reset the current player's hand to an empty card for the next iteration
+	game.Players[currentPlayerIndex].Hand[currentHandIndex] = Card{}
+
+	// Skip the current card and continue generating hands
 	generateHands(deck, currentCardIndex+1, currentPlayerIndex, currentHandIndex, game, result)
 }
+
 func main() {
 	deck := createDeck()
 
@@ -118,5 +134,6 @@ func main() {
 				fmt.Printf("%s %s\n", card.Value, card.Color)
 			}
 		}
+		fmt.Println()
 	}
 }
